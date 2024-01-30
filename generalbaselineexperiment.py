@@ -2,7 +2,7 @@ from experiments import GeneralExperiment
 from dataloader import AmazonLoader
 import numpy as np
 
-INDUSTRIAL_SCIENTIFIC=False
+INDUSTRIAL_SCIENTIFIC=True
 MUSIC=False
 PLOT_BOTH = True
 

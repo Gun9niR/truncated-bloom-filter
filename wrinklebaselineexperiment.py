@@ -2,7 +2,7 @@ from experiments import WrinkleExperiment
 from dataloader import AmazonLoader
 import numpy as np
 
-RUN=False
+RUN=True
 PLOT=True
 
 
