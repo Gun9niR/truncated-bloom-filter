@@ -26,3 +26,6 @@ Each experiment can be replicated in one click. The exact data that was used to 
 2. `python3 optimizationtime.py`
 3. `python3 utilityrobustness.py`
 4. `python3 wrinklebaselineexperiment.py`
+
+# Results
+The plots and saved numerical values are in the folders that have the substring "results."
