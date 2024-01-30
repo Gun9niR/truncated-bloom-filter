@@ -16,7 +16,7 @@ plt.rcParams.update(params)
 RUN = True
 PLOT = True
 # CONFINTS = False
-RANGES = True
+RANGES = False
 
 FPR = 0.0001
 
