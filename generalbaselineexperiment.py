@@ -3,7 +3,7 @@ from dataloader import AmazonLoader
 import numpy as np
 
 INDUSTRIAL_SCIENTIFIC=True
-MUSIC=False
+MUSIC=True
 PLOT_BOTH = True
 
 # dataset = AmazonLoader('data/processed', 'amazon_industrial_scientific')
