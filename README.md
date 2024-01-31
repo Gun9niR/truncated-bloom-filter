@@ -6,7 +6,7 @@ Welcome to the repository accompanying the paper Optimal Bloom Filter Indexing o
 2. Make sure that you have Python 3 installed
 3. (Optional) Create a virtual environment
 4. `pip3 install requirements.txt`
-5. (Optional) Download the following datasets [1](https://drive.google.com/drive/folders/1eRfZ1cKL8zXl9aTb3uW8wtZ-AafFULAP?usp=sharing) [2](https://drive.google.com/drive/folders/1-kv1vjf8kWWft5N5vTZunOLRyfFcSyqj?usp=sharing) and place them in the `data/` directory.
+5. Download the following dataset folders [1](https://drive.google.com/drive/folders/1eRfZ1cKL8zXl9aTb3uW8wtZ-AafFULAP?usp=sharing) [2](https://drive.google.com/drive/folders/1-kv1vjf8kWWft5N5vTZunOLRyfFcSyqj?usp=sharing) and place them both in the `data/` directory.
 
 # Data processing replication
 If desired, you can replicate our data processing and query generation scripts using the following notebooks: `relational.ipynb` and `dataset_analysis.ipynb`. Note that this will overwrite the data that can be used to exactly reproduce our results, since certain parts are stochastic. However, the overall results would still be practically identical. 
