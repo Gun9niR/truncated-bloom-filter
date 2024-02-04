@@ -9,7 +9,7 @@ params = {'legend.fontsize': 'medium',
 plt.rcParams.update(params)
 import json
 
-with open('relationalresults/{}.json'.format('NASA'), 'r') as fp:
+with open('relationalresults/{}_RGSIZE_AVG.json'.format('NASA'), 'r') as fp:
     results = json.load(fp)
 
 DISAGG_CONSTS = [5, 10]

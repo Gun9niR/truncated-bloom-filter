@@ -123,9 +123,10 @@ class RelationalLoader:
                 s = table_pd[table_pd.columns[i]][j*rg_size:(j+1)*rg_size].tolist()
                 if j == 0:
                     col_dtypes.append(type(s[0]))
-                group_keys.append(s)
+                # group_keys.append(s)
+                group_keys.append(list(set(s)))
             group_keys_all.append(group_keys)
-        return group_keys_all, col_dtypes, table_pd.columns
+        return group_keys_all, col_dtypes, table_pd.columns, rg_size
     
     def load_utilities(self):
         return np.load(self.utility_file)
