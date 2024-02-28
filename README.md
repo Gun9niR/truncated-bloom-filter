@@ -9,10 +9,10 @@ Welcome to the repository accompanying the paper Optimizing Collections of Bloom
 5. Download the following dataset folders [1](https://drive.google.com/drive/folders/1eRfZ1cKL8zXl9aTb3uW8wtZ-AafFULAP?usp=sharing) [2](https://drive.google.com/drive/folders/1-kv1vjf8kWWft5N5vTZunOLRyfFcSyqj?usp=sharing) and place them both in the `data/` directory.
 
 # Data processing replication
-If desired, you can replicate our data processing and query generation scripts using the following notebooks: `relational.ipynb` and `dataset_analysis.ipynb`. Note that this will overwrite the data that can be used to exactly reproduce our results, since certain parts are stochastic. However, the overall results would still be practically identical. 
+If desired, you can replicate our data processing and query generation scripts using the following notebooks: `relational.ipynb` and `dataset_analysis.ipynb`. Note that this will overwrite the data that can be used to reproduce our results, since certain parts are stochastic. However, the overall results would still be practically identical, if one follows the advice given below. 
 
 # Experiment replication
-Each experiment can be run in one click. The exact data that was used to produce the results is already in the repository, but there is some inherent randomness due to the probabablistic nature of a Bloom filter. Note that many of the experiments take a long time to run. Additionally, some of the experiments measure latency. Please make sure that you minimize the impact of other running processes on your machine, as this can produce noisy results. The code for each subsection in the evaluation is listed below.    
+Each experiment can be run in one click. The exact data that was used to produce the results is already in the repository, but there is some inherent randomness due to the probabablistic nature of a Bloom filter. Note that many of the experiments take a long time to run. Additionally, some of the experiments measure latency. Please make sure that you minimize the impact of other running processes on your machine, as this can produce noisy results. The code that produces the figures for each subsection in the evaluation is listed below.    
 
 ## Data Skipping
 1. Figures 2, 3, 4 -> `python3 skippingexperiment.py`
