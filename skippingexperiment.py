@@ -45,7 +45,7 @@ DATASET_NAMES = ['RealEstate', 'ElectricVehicles', 'NASA']
 start = time.time()
 
 if RUN:
-    for trial in range(7, 11):
+    for trial in range(1, 11):
         print("Trial:", trial)
         if RUN:
             for dataset, dname in zip(DATASETS, DATASET_NAMES):
