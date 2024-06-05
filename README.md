@@ -6,7 +6,6 @@ Welcome to the repository accompanying the paper Optimizing Collections of Bloom
 2. Make sure that you have Python 3 installed
 3. (Optional) Create a virtual environment
 4. `pip3 install requirements.txt`
-5. Download the following dataset folders [1](https://drive.google.com/drive/folders/1eRfZ1cKL8zXl9aTb3uW8wtZ-AafFULAP?usp=sharing) [2](https://drive.google.com/drive/folders/1-kv1vjf8kWWft5N5vTZunOLRyfFcSyqj?usp=sharing) and place them both in the `data/` directory.
 
 # Data processing replication
 If desired, you can replicate our data processing and query generation scripts using the following notebooks: `relational.ipynb` and `dataset_analysis.ipynb`. Note that this will overwrite the data that can be used to reproduce our results, since certain parts are stochastic. However, the overall results would still be practically identical, if one follows the advice given below. 
@@ -16,16 +15,15 @@ Each experiment can be run in one click. The exact data that was used to produce
 
 ## Data Skipping
 1. Figures 2, 3, 4 -> `python3 skippingexperiment.py`
-2. Figure 5 -> `python3 disaggregatedsimulation.py`
+2. Figure 5 -> `python3 skipping_limitvalue.py` and `python3 skipping_predicate_count.py`
+3. Figure 6 -> `python3 hybrid_skipping_experiment.py`
 
 ## Full-text search
-1. Figures 6, 7 -> `python3 generalbaselineexperiment.py`
+1. Figures 7, 8 -> `python3 generalbaselineexperiment.py`
 
 ## Microbenchmarks
-1. Figure 8 -> `python3 tbfexperiments.py`
-2. Figure 9 -> `python3 optimizationtime.py`
-3. Figure 10 -> `python3 utilityrobustness.py`
-4. Figure 11 -> `python3 wrinklebaselineexperiment.py`
+1. Figure 9 -> `python3 tbfexperiments.py`
+2. Table 1 -> `python3 optimizationtime.py`
 
 # Results
-The plots and saved numerical values are in the folders that have the substring "results."
+The plots and saved numerical values are in the folder "REVISION_RESULTS."
