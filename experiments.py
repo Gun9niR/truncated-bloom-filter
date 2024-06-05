@@ -349,11 +349,15 @@ class GeneralExperiment(Experiment):
     @staticmethod
     def plot_general_results_subplots(results_paths, k, outpath='results', identifier=''):
             params = {
-            'legend.fontsize': 'xx-small',
-            'axes.labelsize': 'small',
-            'axes.titlesize':'small',
-            'xtick.labelsize':'small',
-            'ytick.labelsize':'small'}
+                # set bold axis labels
+            
+            'legend.fontsize': 'small',
+            'axes.labelsize': 'medium',
+            'axes.titlesize':'medium',
+            'xtick.labelsize':'medium',
+            'ytick.labelsize':'medium',
+            'axes.labelweight': 'bold',
+            }
             plt.rcParams.update(params)         
             dfs = [pd.read_csv(results_path) for results_path in results_paths]
             cr = ['Compression Ratio']
@@ -424,7 +428,7 @@ class GeneralExperiment(Experiment):
             nicknames = {}
             for i, name in enumerate(names):
                 if name == 'Scan':
-                    nicknames[name] = 'SCN'
+                    nicknames[name] = 'S'
                 elif name == 'Inverted Index':
                     nicknames[name] = 'II'
                 elif name == 'Top M Doc':
@@ -434,11 +438,11 @@ class GeneralExperiment(Experiment):
                 elif name == 'Top K Inverted Index':
                     nicknames[name] = 'TKII'
                 elif name == 'Basic Bloom':
-                    nicknames[name] = 'Base Bloom'
+                    nicknames[name] = 'BsB'
                 elif name == 'Bounded Bloom Disk':
-                    nicknames[name] = 'Bound Bloom Disk'
+                    nicknames[name] = 'BBD'
                 elif name == 'Bounded Bloom':
-                    nicknames[name] = 'Bound Bloom'
+                    nicknames[name] = 'BB'
         
             prec_fig, prec_ax = plt.subplots(1, len(dfs), figsize=(12, 5))
             time_fig, time_ax = plt.subplots(1, len(dfs), figsize=(12, 5))
@@ -462,7 +466,7 @@ class GeneralExperiment(Experiment):
                     prec_ax[j].set_ylabel('Precision@{}'.format(k))
                 else:
                     handles, labels = prec_ax[j].get_legend_handles_labels()
-                    order = [labels.index('Bound Bloom Disk (us)'), labels.index('Bound Bloom (us)'), labels.index('Base Bloom'), labels.index('TMII'), labels.index('TKII'), labels.index('II'), labels.index('TMDS'), labels.index('SCN')]
+                    order = [labels.index('BBD (us)'), labels.index('BB (us)'), labels.index('BsB'), labels.index('TMII'), labels.index('TKII'), labels.index('II'), labels.index('TMDS'), labels.index('S')]
                     prec_fig.legend([handles[idx] for idx in order], [labels[idx] for idx in order], loc='upper center', ncols=len(order))
                     prec_fig.savefig(os.path.join(outpath,identifier+'precision_vs_index_size.png'), bbox_inches='tight')
         
@@ -486,7 +490,7 @@ class GeneralExperiment(Experiment):
                     time_ax[j].set_ylabel('Average query latency (ms)')
                 else:
                     handles, labels = time_ax[j].get_legend_handles_labels()
-                    order = [labels.index('Bound Bloom Disk (us)'), labels.index('Bound Bloom (us)'), labels.index('Base Bloom'), labels.index('TMII'), labels.index('TKII'), labels.index('II'), labels.index('TMDS'), labels.index('SCN')]
+                    order = [labels.index('BBD (us)'), labels.index('BB (us)'), labels.index('BsB'), labels.index('TMII'), labels.index('TKII'), labels.index('II'), labels.index('TMDS'), labels.index('S')]
                     time_fig.legend([handles[idx] for idx in order], [labels[idx] for idx in order], loc='upper center', ncols=len(order))
                     time_fig.savefig(os.path.join(outpath,identifier+'time_vs_index_size.png'), bbox_inches='tight')
                         

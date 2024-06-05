@@ -31,6 +31,36 @@ class ColumnBloom(BoundedBlooms):
             if pos < mprime and bf[pos] == False:
                 return False
         return True
+    
+class ColumnBloomSplit(ColumnBloom):
+    def __init__(self, bit_budget, target_fpr=0.01, maxk=250, column_name="sample", row_group_size=1000):
+        super().__init__(bit_budget, target_fpr, maxk, column_name, row_group_size)
+
+    def query(self, key, row_group_id, sleep_time):
+        bf_L = self.bloom_filters[row_group_id]
+        invalid_hashes = []
+        mprime = len(bf_L)
+        # print('BF R', len(bf_R))
+        # query left filter
+        for i in range(self.ks[row_group_id]):
+            pos = mmh3.hash(key, self.shared_seeds[i]) % self.ms[row_group_id]
+            if pos < mprime and bf_L[pos] == False:
+                return False
+            elif pos >= mprime:
+                invalid_hashes.append(pos)
+        # print('invalid hashes:', invalid_hashes)
+        # simulate loading filter from disk
+        time.sleep(sleep_time)
+        bf_R = self.second_halves[row_group_id]
+        # print('mprime:', mprime)
+        # query right filter
+        for pos in invalid_hashes:
+            # print(pos, bf_R[pos-mprime])
+            if bf_R[pos-mprime] == False:
+                return False
+        return True
+    
+    
 
 class DocBloom(BoundedBlooms):
     def __init__(self, bit_budget, target_fpr=0.01, maxk=250, column_name="sample", row_group_size=1000):
@@ -105,7 +135,9 @@ class BloomPredicate(ColumnPredicate):
     def __init__(self, column_name, column_dtype, value):
         super().__init__(column_name, column_dtype, value)
     
-    def __call__(self, column_bloom, row_group_id):
+    def __call__(self, column_bloom, row_group_id, sleep_time=None):
+        if sleep_time:
+            return column_bloom.query(self.value, row_group_id, sleep_time)
         return column_bloom.query(self.value, row_group_id)
     
 class DocPredicate(ColumnPredicate):
@@ -183,8 +215,137 @@ class ColumnIndexes:
                 for j in range(len(bb.bloom_filters)):
                     size = math.floor(compression_ratio*len(bb.bloom_filters[j]))   
                     bb.bloom_filters[j] = bb.bloom_filters[j][:size]
+        # import matplotlib.pyplot as plt
+        # plt.plot([len(bf) for bf in bb.bloom_filters])
+        # plt.savefig('bloom_bf_hist.png')
+        # # time.sleep(5)
+        # plt.clf()
+        self.column_indexes[self.column_names[column_id]] = bb
+
+    def build_hybrid_bloom_index(self, column_id, group_keys, fpr, compression_ratio, variable_resolution=True):
+        if len(group_keys) != self.ngroups:
+            raise ValueError('Number of groups does not match number of keys')
+        if self.column_dtypes[column_id] != str:
+            raise ValueError('Column must be of type str. Cast to str before building index')
+        if variable_resolution:
+            bb = ColumnBloomSplit(1e8, fpr, column_name=self.column_names[column_id], row_group_size=self.row_group_size)
+        else:
+            bb = ColumnBloom(1e8, fpr, column_name=self.column_names[column_id], row_group_size=self.row_group_size)
+        
+        # calculate row group utilities
+        self.calculate_row_group_utilities()
+        bb.add_all(group_keys, self.row_group_utilities)
+        
+        if variable_resolution:
+            size = bb.index_size()
+            bb.update_budget(math.floor(size*compression_ratio))
+            bb.generate_split(optimizer_type='jensen', rounding_scheme='floor',
+                                cval='standard', equality_constraint=True)
+            # get truncation ratios by row group
+            
+            
+        else:
+            # top M
+            size = bb.index_size()
+            budget = math.floor(size*compression_ratio)
+            running_budget = 0
+            for j in range(len(bb.bloom_filters)):
+                cost = len(bb.bloom_filters[j])
+                if cost + running_budget > budget:
+                    self.breakpoints[self.column_names[column_id]] = j-1
+                    self.index_size_sum += running_budget
+                    break
+                running_budget += cost
+        
         self.column_indexes[self.column_names[column_id]] = bb
     
+    def build_elastic_bf_index(self, column_id, group_keys, fpr, compression_ratio, bucket_ratios = [1, 5/6, 4/6, 3/6, 2/6, 1/6, 0]):
+        if len(group_keys) != self.ngroups:
+            raise ValueError('Number of groups does not match number of keys')
+        if self.column_dtypes[column_id] != str:
+            raise ValueError('Column must be of type str. Cast to str before building index')
+        # nbuckets = len(bucket_ratios)
+        # if compression_ratio <= 0.4:
+        #     nbuckets = len(bucket_ratios)-1
+        # else:
+        nbuckets = math.ceil((1-compression_ratio)*(len(bucket_ratios)-1))
+        bb = ColumnBloom(1e8, fpr, column_name=self.column_names[column_id], row_group_size=self.row_group_size)
+
+        
+        # print('Compression ratio:', compression_ratio)
+        
+        self.calculate_row_group_utilities()
+        bb.add_all(group_keys, self.row_group_utilities)
+        
+        # START = math.floor(4*(1-compression_ratio))
+        size = bb.index_size()
+        budget = math.floor(size*compression_ratio)
+        # print('BUDGET :', budget)
+        # bucket_budget = math.floor(budget/(nbuckets-1))
+        # bucket_budget = math.floor(budget/(nbuckets-START))
+        bucket_budget = math.floor(budget/(nbuckets))
+        running_bucket_budget = 0
+        # bucket_idx = 0
+        bucket_idx = 0
+        running_budget = 0
+        for j in range(len(bb.bloom_filters)):
+            cost = math.floor(bucket_ratios[bucket_idx]*len(bb.bloom_filters[j]))
+            if cost + running_bucket_budget > bucket_budget:
+                # print('Break index:', j/len(bb.bloom_filters))
+                # print('Running bucket budget:', running_bucket_budget)
+                # print('Bucket budget:', bucket_budget)
+                # print('Bucket idx:', bucket_idx)
+                # print('Diff in budget:', budget - running_budget)
+                bucket_idx += 1
+                cost = math.floor(bucket_ratios[bucket_idx]*len(bb.bloom_filters[j]))
+                bucket_budget += (bucket_budget - running_bucket_budget)
+                running_bucket_budget = 0
+            # print('Cost KB:', round(cost/8/1024, 3))
+            # if cost == 0:
+            #     break
+            if cost + running_budget > budget:
+                # print("BREAKING")
+                # print("Cost:", cost)
+                # print("Running budget:", running_budget)
+                break
+            running_budget += cost
+            bb.bloom_filters[j] = bb.bloom_filters[j][:cost]
+            running_bucket_budget += cost
+        # clean up remaining budget
+        # print('Bucket ratio cleanup:', bucket_ratios[bucket_idx-1])
+        # print("Remaining budget:", budget - running_budget)
+        
+        # print("Bucket idx:", bucket_idx)
+        
+        while j < len(bb.bloom_filters) and bucket_idx < len(bucket_ratios)-1:
+            # cost = math.floor(bucket_ratios[bucket_idx-1]*len(bb.bloom_filters[j]))
+            cost = math.floor(bucket_ratios[bucket_idx+1]*len(bb.bloom_filters[j]))
+            if cost + running_budget > budget:
+                bucket_idx += 1
+                continue
+            bb.bloom_filters[j] = bb.bloom_filters[j][:cost]
+            running_budget += cost
+            j += 1
+
+        # print("# zero length filters:", sum([len(bf) == 0 for bf in bb.bloom_filters]))
+        # print('Gap to budget:', budget - running_budget)
+        # # allocate 0 to remaining    
+        # # while j < len(bb.bloom_filters):
+        # #     bb.bloom_filters[j] = bb.bloom_filters[j][:0]
+        # #     j += 1
+        # import matplotlib.pyplot as plt
+        # plt.plot([len(bf) for bf in bb.bloom_filters])
+        # plt.savefig('elastic_bf_hist.png')
+        # plt.clf()
+        # time.sleep(5)
+        # plt.clf()
+        # print("Number of zeros-length filters:", sum([len(bf) == 0 for bf in bb.bloom_filters]))
+        
+        # print('Running budget:', running_budget)
+        
+        # print('Requested budget', budget)
+        
+        self.column_indexes[self.column_names[column_id]] = bb
     # def read_times_range_indexes(self):
     #     self.read_times = {}
     #     for index, name in zip(self.column_indexes, self.column_names):
@@ -209,7 +370,7 @@ class ColumnIndexes:
                     index = {k: [int(i) for i in v] for k, v in index.items()}
                 with open("{}.json".format(name), 'w') as f:
                     json.dump(index, f)
-            elif type(index) == ColumnBloom:
+            elif type(index) == ColumnBloom or type(index) == ColumnBloomSplit:
                 for rg, bf in enumerate(index.bloom_filters):
                     with open ("{}_{}.bin".format(name, rg), 'wb') as f:
                         bf.tofile(f)
@@ -221,7 +382,7 @@ class ColumnIndexes:
                 with open("{}.json".format(name), 'r') as f:
                     index = json.load(f)
                     indexes.append(index)
-            elif type(index) == ColumnBloom:
+            elif type(index) == ColumnBloom or type(index) == ColumnBloomSplit:
                 bfs = []
                 for rg, bf in enumerate(index.bloom_filters):
                     a = bitarray.bitarray()
@@ -280,7 +441,7 @@ class ColumnIndexes:
     def index_size(self):
         size = 0
         for _, index in self.column_indexes.items():
-            if type(index) == ColumnBloom or type(index) == DocBloom:
+            if type(index) == ColumnBloom or type(index) == DocBloom or type(index) == ColumnBloomSplit:
                 size += index.index_size()
             elif type(index) == dict and type(index[0][0]) == str:
                 for _, rnge in index.items():
@@ -290,21 +451,24 @@ class ColumnIndexes:
                 size += 2*FLOAT_SIZE
         return size
     # currently restricted to conjunctive queries            
-    def query_rowgroup(self, predicates, row_group_id):
+    def query_rowgroup(self, predicates, row_group_id, sleep_times=None):
         eval_result = []
         for p in predicates:
             index = self.column_indexes[p.column_name]
             if type(index) == ColumnBloom:
                 eval_result.append(p(index, row_group_id))
+            elif type(index) == ColumnBloomSplit:
+                eval_result.append(p(index, row_group_id, sleep_times[row_group_id]))
             elif type(index) == DocBloom:
                 eval_result.append(p(index, row_group_id))
             elif type(index) == dict:
                 eval_result.append(p(index[row_group_id]))
             else:
                 raise ValueError('Column index type not recognized')
+        # print(eval_result)
         if eval_result[0] and all(eval_result):
             return True
-        return False
+        return False   
     
     def disk_read(self, row_group_id):
         return self.parquet_file.read_row_group(row_group_id).to_pandas()
@@ -381,7 +545,8 @@ class ColumnIndexes:
         wasted_time = 0.0
         start = time.time()
         query_string = self.build_pandas_query(predicates)
-        result = []            
+        result = []
+        fp_cnt = 0         
         for rg in range(self.ngroups):
             # waste_start = time.time()
             if self.query_rowgroup(predicates, rg):
@@ -390,11 +555,17 @@ class ColumnIndexes:
                 df = self.disk_read(rg)
                 
                 df.set_index(np.array(original_ids), inplace=True)
+                # check if "West Haven" is in the town column
+                # print('SECOND AVE:', df.query('Address == "SECOND AVE"').shape[0])
+                # print('West Haven:', df.query('Town == "West Haven"').shape[0])
+                # print('Both:', df.query('Address == "SECOND AVE" & Town == "West Haven"').shape[0])
 
                 df = df.query(query_string)
                 
                 if df.shape[0] == 0:
                     wasted_time += time.time()-waste_start
+                    # print("false positive")
+                    # fp_cnt += 1
                     
                 for id in df.index:
                     result.append(id)
@@ -402,6 +573,10 @@ class ColumnIndexes:
                         self.exp_stats['Skip rate'].append(skips/(rg+1))
                         self.exp_stats['Query latencies'].append(time.time()-start)
                         self.exp_stats['Wasted time'].append(wasted_time)
+                        # try:
+                        #     print("FPR: {} | Skips: {}, False positives: {}".format(fp_cnt/(skips+fp_cnt), skips, fp_cnt))
+                        # except:
+                        #     pass
                         return result 
             else:
                 skips += 1

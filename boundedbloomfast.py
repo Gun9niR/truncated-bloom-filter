@@ -149,6 +149,47 @@ class BoundedBlooms:
         n_cached_docs = sum([1 for bf in self.bloom_filters if len(bf) > 0])
         self.cache_doc_pct = n_cached_docs/len(self.bloom_filters)
     
+    def generate_split(self, optimizer_type, rounding_scheme, equality_constraint=True, cval='standard'):
+        N = len(self.bloom_filters)
+        self.second_halves = []
+        params = np.zeros((N, 3))
+
+        params[:, 0] = self.ms
+        params[:, 1] = self.ns
+        params[:, 2] = self.ks
+
+        utilities = np.array(self.utilities)
+        
+        if optimizer_type == 'jensen':
+            opt = ConvexJensen().optimize(self.bit_budget, utilities, params[:, 0],
+                                          params[:, 1], params[:, 2], equality_constraint, cval)
+        if opt is None:
+            raise ValueError('Optimization failed. No feasible solution exists.')
+        
+        if rounding_scheme == 'floor':
+            opt = FloorRounding().round(opt)
+        elif rounding_scheme == 'greedy':
+            opt = GreedyPairing().round(opt, utilities, params[:, 0])
+        else:
+            raise ValueError('rounding_scheme must be "floor" or "greedy"')
+
+        self.ms = [len(bf) for bf in self.bloom_filters]
+        
+        temp = copy.copy(self.bloom_filters)
+        
+        
+        for i in range(N):
+            # print('og:', temp[i])
+            # print('L:', self.bloom_filters[i][:opt[i]])
+            # print('R:', self.bloom_filters[i][opt[i]:])
+            self.second_halves.append(self.bloom_filters[i][opt[i]:])
+            self.bloom_filters[i] = self.bloom_filters[i][:opt[i]]
+        
+        self.length_ratios = [len(bf)/m for bf, m in zip(self.second_halves, self.ms)]
+        
+        n_cached_docs = sum([1 for bf in self.bloom_filters if len(bf) > 0])
+        self.cache_doc_pct = n_cached_docs/len(self.bloom_filters)
+    
     def index_size(self):
         return sum([len(bf) for bf in self.bloom_filters])
     

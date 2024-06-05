@@ -6,11 +6,20 @@ import copy
 plt.style.use("seaborn-v0_8-paper")
 plt.rcParams['figure.dpi'] = 300
 
+params = {'legend.fontsize': 'large',
+         'axes.labelsize': 'large',
+         'axes.titlesize':'large',
+         'xtick.labelsize':'large',
+         'ytick.labelsize':'large',
+         'axes.labelweight': 'bold'}
+
+plt.rcParams.update(params)
+
 
 
 # generate random strings
-# N = 100000
-N = 20000
+N = 1000000
+# N = 20000
 n_chars = 20
 chars = list('abcdefghijklmnopqrstuvwxyz0123456789')
 
@@ -54,6 +63,7 @@ for key in string_keys:
     end = time.time()
     local.append(end-start)
 bf_avg_latency_pos = np.mean(local)
+# bf_avg_latency_pos = np.median(local)
 bf_latency_ci_width_pos = 1.96*np.std(local, ddof=1)/np.sqrt(len(local))
 
 
@@ -136,16 +146,16 @@ for i, fpr in enumerate(fprs):
 plt.xlabel('Truncation ratio (p)')
 plt.ylabel('False positive rate')
 plt.legend()
-plt.savefig('resultsmicro/truncatedfpr_multiconstructionfprs.png', bbox_inches='tight')
+plt.savefig('REVISION_RESULTS/truncatedfpr_multiconstructionfprs.png', bbox_inches='tight')
 plt.clf()
 
-params = {
-            'legend.fontsize': 'medium',
-            'axes.labelsize': 'medium',
-            'axes.titlesize':'small',
-            'xtick.labelsize':'small',
-            'ytick.labelsize':'small'}
-plt.rcParams.update(params) 
+# params = {
+#             'legend.fontsize': 'medium',
+#             'axes.labelsize': 'medium',
+#             'axes.titlesize':'small',
+#             'xtick.labelsize':'small',
+#             'ytick.labelsize':'small'}
+# plt.rcParams.update(params) 
 
 fig, ax = plt.subplots(1, 2, figsize=(10, 5))
 
@@ -182,5 +192,5 @@ ax[1].errorbar([1.0], [bf_avg_latency_neg], yerr=bf_latency_ci_width_neg, color=
 ax[1].set_xlabel('Truncation ratio (p)')
 ax[1].set_ylabel('Query latency (μs)')
 ax[1].legend()
-fig.savefig('resultsmicro/truncatedquerylatency_fpr_new.png', bbox_inches='tight')
+fig.savefig('REVISION_RESULTS/truncatedquerylatency_fpr_new.png', bbox_inches='tight')
 
