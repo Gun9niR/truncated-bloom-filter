@@ -45,7 +45,7 @@ DATASET_NAMES = ['RealEstate', 'ElectricVehicles', 'NASA']
 start = time.time()
 
 if RUN:
-    for trial in range(1, 11):
+    for trial in range(1, 2):
         print("Trial:", trial)
         if RUN:
             for dataset, dname in zip(DATASETS, DATASET_NAMES):
@@ -71,33 +71,34 @@ if RUN:
                 results = {'Bloom': [], 'Range': [], 'Disk': [], 'Equal Truncation': [], 'Top Utility': [], 'ElasticBF': []}
                 
                 results_ranges = {'Bloom': [], 'Range': [], 'Disk': [], 'Equal Truncation': [], 'Top Utility': [], 'ElasticBF': []}
-                crs = np.arange(0.1, 1.0, 0.1)
+                # crs = np.arange(0.1, 1.0, 0.1)
+                crs = [0.5]
                 fpr = FPR
 
-                rs = RangeSkipping(column_names, column_dtypes, len(group_keys_all[0]),
-                                    utilities, dataset[0], rg_size)
-                rs.construct_indexes(group_keys_all)
+                # rs = RangeSkipping(column_names, column_dtypes, len(group_keys_all[0]),
+                #                     utilities, dataset[0], rg_size)
+                # rs.construct_indexes(group_keys_all)
 
-                ds = DiskIndex(column_names, column_dtypes, len(group_keys_all[0]),
-                                    utilities, dataset[0], rg_size)
-                ds.construct_indexes(group_keys_all, fpr, 1.0)
+                # ds = DiskIndex(column_names, column_dtypes, len(group_keys_all[0]),
+                #                     utilities, dataset[0], rg_size)
+                # ds.construct_indexes(group_keys_all, fpr, 1.0)
                 
-                time.sleep(15)
+                # time.sleep(15)
 
-                for q in non_alpha_queries:
-                    qresult = ds.query(q.predicates, k)
+                # for q in non_alpha_queries:
+                #     qresult = ds.query(q.predicates, k)
                 
-                time.sleep(15)
+                # time.sleep(15)
 
-                for q in alpha_queries:
-                    qresult = rs.query(q.predicates, k)
+                # for q in alpha_queries:
+                #     qresult = rs.query(q.predicates, k)
 
-                results['Disk'].extend([ds.average_stats() for _ in range(len(crs))])
-                results['Range'].extend([rs.average_stats() for _ in range(len(crs))])
+                # results['Disk'].extend([ds.average_stats() for _ in range(len(crs))])
+                # results['Range'].extend([rs.average_stats() for _ in range(len(crs))])
                 
-                if RANGES:
-                    results_ranges['Disk'].extend([ds.range_stats() for _ in range(len(crs))])
-                    results_ranges['Range'].extend([rs.range_stats() for _ in range(len(crs))])
+                # if RANGES:
+                #     results_ranges['Disk'].extend([ds.range_stats() for _ in range(len(crs))])
+                #     results_ranges['Range'].extend([rs.range_stats() for _ in range(len(crs))])
 
                 for cr in crs:
                     print("CR: {}".format(cr))
@@ -106,21 +107,25 @@ if RUN:
 
                     bs.construct_indexes(group_keys_all, fpr, cr)
                     
-                    imet = InMemEqualTrunc(column_names, column_dtypes, len(group_keys_all[0]),
-                                    utilities, dataset[0], rg_size)
-                    imet.construct_indexes(group_keys_all, fpr, cr)
+                    # imet = InMemEqualTrunc(column_names, column_dtypes, len(group_keys_all[0]),
+                    #                 utilities, dataset[0], rg_size)
+                    # imet.construct_indexes(group_keys_all, fpr, cr)
                     
-                    tu = TopUtility(column_names, column_dtypes, len(group_keys_all[0]),
-                                    utilities, dataset[0], rg_size)
-                    tu.construct_indexes(group_keys_all, fpr, cr)
+                    # tu = TopUtility(column_names, column_dtypes, len(group_keys_all[0]),
+                    #                 utilities, dataset[0], rg_size)
+                    # tu.construct_indexes(group_keys_all, fpr, cr)
                     
-                    ebf = ElasticBF(column_names, column_dtypes, len(group_keys_all[0]),
-                                    utilities, dataset[0], rg_size)
-                    ebf.construct_indexes(group_keys_all, fpr, cr)
+                    # ebf = ElasticBF(column_names, column_dtypes, len(group_keys_all[0]),
+                    #                 utilities, dataset[0], rg_size)
+                    # ebf.construct_indexes(group_keys_all, fpr, cr)
                     
-                    methods = {'Bloom': bs, 'Range': rs, 'Disk': ds, 'Equal Truncation': imet, 'Top Utility' : tu, 'ElasticBF': ebf}
+                    # methods = {'Bloom': bs, 'Range': rs, 'Disk': ds, 'Equal Truncation': imet, 'Top Utility' : tu, 'ElasticBF': ebf}
+                    methods = {'Bloom': bs}
                     
                     time.sleep(15)
+
+                    import sys
+                    sys.activate_stack_trampoline("perf")
                     for i, q in enumerate(non_alpha_queries):
                         if i % 25 == 0:
                             print(f"Query {i}/{len(non_alpha_queries)}")
@@ -128,19 +133,19 @@ if RUN:
                         for name, method in methods.items():
                             if name != 'Range' and name != 'Disk':
                                 qresult = method.query(q.predicates, k)
-                        
-                    for name in results:
-                        if name != 'Range' and name != 'Disk':
-                            results[name].append(methods[name].average_stats())
-                            if RANGES:
-                                results_ranges[name].append(methods[name].range_stats())
+                    sys.deactivate_stack_trampoline()
+                    # for name in results:
+                    #     if name != 'Range' and name != 'Disk':
+                    #         results[name].append(methods[name].average_stats())
+                    #         if RANGES:
+                    #             results_ranges[name].append(methods[name].range_stats())
 
-                with open('REVISION_RESULTS/{}_RGSIZE{}.json'.format(dname, trial), 'w') as fp:
-                    json.dump(results, fp)
+                # with open('REVISION_RESULTS/{}_RGSIZE{}.json'.format(dname, trial), 'w') as fp:
+                #     json.dump(results, fp)
                 
-                if RANGES:
-                    with open('REVISION_RESULTS/{}_ranges_RGSIZE{}.json'.format(dname, trial), 'w') as fp:
-                        json.dump(results_ranges, fp)
+                # if RANGES:
+                #     with open('REVISION_RESULTS/{}_ranges_RGSIZE{}.json'.format(dname, trial), 'w') as fp:
+                #         json.dump(results_ranges, fp)
             
         if PLOT:
             # subplot for each metric

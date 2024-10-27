@@ -119,6 +119,7 @@ class BoundedBlooms:
             self.bloom_filters[i] = copy.copy(self.bloom_filter_backups[i])
         
     def update_budget(self, new_budget):
+        print("budget: ", new_budget)
         self.bit_budget = new_budget
 
     def update_filter_lengths(self, optimizer_type, rounding_scheme, equality_constraint=True, cval='standard'):

@@ -10,6 +10,7 @@ import time
 from abc import abstractmethod
 from typing import List
 import os
+import sys
 
 
 FLOAT_SIZE = 32
@@ -548,38 +549,39 @@ class ColumnIndexes:
         result = []
         fp_cnt = 0         
         for rg in range(self.ngroups):
+            self.query_rowgroup(predicates, rg)
             # waste_start = time.time()
-            if self.query_rowgroup(predicates, rg):
-                waste_start = time.time()
-                original_ids = list(range(rg*self.row_group_size, min((rg+1)*self.row_group_size, len(self.row_utilities))))
-                df = self.disk_read(rg)
+            # if self.query_rowgroup(predicates, rg):
+                # waste_start = time.time()
+                # original_ids = list(range(rg*self.row_group_size, min((rg+1)*self.row_group_size, len(self.row_utilities))))
+                # df = self.disk_read(rg)
                 
-                df.set_index(np.array(original_ids), inplace=True)
-                # check if "West Haven" is in the town column
-                # print('SECOND AVE:', df.query('Address == "SECOND AVE"').shape[0])
-                # print('West Haven:', df.query('Town == "West Haven"').shape[0])
-                # print('Both:', df.query('Address == "SECOND AVE" & Town == "West Haven"').shape[0])
+                # df.set_index(np.array(original_ids), inplace=True)
+                # # check if "West Haven" is in the town column
+                # # print('SECOND AVE:', df.query('Address == "SECOND AVE"').shape[0])
+                # # print('West Haven:', df.query('Town == "West Haven"').shape[0])
+                # # print('Both:', df.query('Address == "SECOND AVE" & Town == "West Haven"').shape[0])
 
-                df = df.query(query_string)
+                # df = df.query(query_string)
                 
-                if df.shape[0] == 0:
-                    wasted_time += time.time()-waste_start
-                    # print("false positive")
-                    # fp_cnt += 1
+                # if df.shape[0] == 0:
+                #     wasted_time += time.time()-waste_start
+                #     # print("false positive")
+                #     # fp_cnt += 1
                     
-                for id in df.index:
-                    result.append(id)
-                    if len(result) == k:
-                        self.exp_stats['Skip rate'].append(skips/(rg+1))
-                        self.exp_stats['Query latencies'].append(time.time()-start)
-                        self.exp_stats['Wasted time'].append(wasted_time)
-                        # try:
-                        #     print("FPR: {} | Skips: {}, False positives: {}".format(fp_cnt/(skips+fp_cnt), skips, fp_cnt))
-                        # except:
-                        #     pass
-                        return result 
-            else:
-                skips += 1
+                # for id in df.index:
+                #     result.append(id)
+                #     if len(result) == k:
+                #         self.exp_stats['Skip rate'].append(skips/(rg+1))
+                #         self.exp_stats['Query latencies'].append(time.time()-start)
+                #         self.exp_stats['Wasted time'].append(wasted_time)
+                #         # try:
+                #         #     print("FPR: {} | Skips: {}, False positives: {}".format(fp_cnt/(skips+fp_cnt), skips, fp_cnt))
+                #         # except:
+                #         #     pass
+                #         return result 
+            # else:
+            #     skips += 1
         self.exp_stats['Skip rate'].append(skips/(rg+1))
         self.exp_stats['Query latencies'].append(time.time()-start)
         self.exp_stats['Wasted time'].append(wasted_time)
